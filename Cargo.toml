@@ -2,7 +2,21 @@
 name = "iotmq"
 version = "0.1.0"
 edition = "2021"
+description = "IotMQ is a high-performance MQTT broker for IoT, It fully implements the MQTT protocol V3.x and V5"
+repository = "https://github.com/laomar/iotmq"
+documentation = "https://docs.rs/iotmq"
+keywords = ["mqtt", "iot"]
+categories = ["network-programming"]
+license = "MIT"
 
 [dependencies]
-rsmqtt = { path = "../rsmqtt" }
-tokio = { version = "1.40.0", features = ["full"] }
+tokio = { version = "1.45.1", features = ["full"] }
+clap = { version = "4.5.39", features = ["derive"] }
+daemonize = "0.5.0"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["json"] }
+tracing-appender = "0.2.3"
+chrono = "0.4.41"
+config = "0.15.11"
+serde = { version = "1.0.219", features = ["derive"] }
+once_cell = "1.21.3"

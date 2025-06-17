@@ -6,12 +6,16 @@ addr = "0.0.0.0:1883"
 
 [listener.tls]
 addr = "0.0.0.0:8883"
+cert = "./config/iotmq.crt"
+key = "./config/iotmq.key"
 
 [listener.ws]
 addr = "0.0.0.0:8083"
 
 [listener.wss]
 addr = "0.0.0.0:8084"
+cert = "./config/iotmq.crt"
+key = "./config/iotmq.key"
 
 ##------------------------------------------------
 ##   MQTT
@@ -22,6 +26,8 @@ max_packet_size = 1
 max_topic_alias = 65535
 max_receive = 2048
 max_qos = 2
+max_inflight = 16
+max_mqueue_len = 1000
 session_expiry_interval = 300
 retain_available = true
 
@@ -29,6 +35,13 @@ retain_available = true
 ##   Log
 ##------------------------------------------------
 [log]
+level = "warn"     # debug | info | warn | error , default: info
+format = "text"    # json | text , default: json
+dir = "./logs"     # log directory
+file = "gomq.log"  # log filename , default: iotmq.log
+max_age = 7        # log retention days , default: 30
+max_size = 32      # log file size (MB) , default: 128
+max_count = 100    # log file retention nums , default: 100
 
 ##------------------------------------------------
 ##   Cluster
