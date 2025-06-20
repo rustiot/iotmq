@@ -32,13 +32,19 @@ session_expiry_interval = 300
 retain_available = true
 
 ##------------------------------------------------
+##   IOTMQ DashBoard
+##------------------------------------------------
+[web]
+port = 8080
+
+##------------------------------------------------
 ##   Log
 ##------------------------------------------------
 [log]
-level = "warn"     # debug | info | warn | error , default: info
-format = "text"    # json | text , default: json
+level = "info"     # debug | info | warn | error , default: info
+format = "json"    # json | text , default: json
 dir = "./logs"     # log directory
-file = "gomq.log"  # log filename , default: iotmq.log
+file = "iotmq.log" # log filename , default: iotmq.log
 max_age = 7        # log retention days , default: 30
 max_size = 32      # log file size (MB) , default: 128
 max_count = 100    # log file retention nums , default: 100

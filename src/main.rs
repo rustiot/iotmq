@@ -1,10 +1,5 @@
-mod server;
-mod conn;
-mod cmd;
-mod config;
-mod log;
+use iotmq::cmd;
 
 fn main() {
-    log::init();
-    cmd::parse();
+    cmd::parse(); // Command parse
 }

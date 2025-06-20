@@ -20,3 +20,7 @@ chrono = "0.4.41"
 config = "0.15.11"
 serde = { version = "1.0.219", features = ["derive"] }
 once_cell = "1.21.3"
+axum = "0.8.4"
+tower-http = { version = "0.6.6", features = ["fs"] }
+thiserror = "2.0.12"
+nix = { version = "0.30.1", features = ["signal"] }
