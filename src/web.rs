@@ -1,12 +1,13 @@
 use crate::Config;
+use crate::Context;
 use crate::Error;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
 use axum::Router;
 use serde::Deserialize;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::broadcast::Receiver;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::info;
 
@@ -38,7 +39,7 @@ impl WebServer {
         Router::new().fallback(not_found)
     }
 
-    pub async fn start(mut shutdown: Receiver<()>) -> Result<(), Error> {
+    pub async fn start(ctx: Arc<Context>) -> Result<(), Error> {
         let config = Config::get().web;
         let addr = SocketAddr::new("0.0.0.0".parse().unwrap(), config.port);
 
@@ -47,7 +48,7 @@ impl WebServer {
         let ln = TcpListener::bind(addr).await?;
         axum::serve(ln, Self::routes())
             .with_graceful_shutdown(async move {
-                let _ = shutdown.recv().await;
+                let _ = ctx.subscribe().recv().await;
             })
             .await?;
 

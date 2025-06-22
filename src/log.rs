@@ -1,14 +1,19 @@
 use crate::Config;
 use chrono::Local;
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 use tracing::Level;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::{non_blocking, rolling};
-use tracing_subscriber::fmt;
+use tracing_subscriber::filter::{FilterFn, LevelFilter};
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
-use tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{fmt, Layer, Registry};
+
+static LOG_GUARD: OnceCell<(WorkerGuard, WorkerGuard)> = OnceCell::new();
 
 // Log configuration
 #[derive(Debug, Deserialize, Clone)]
@@ -69,28 +74,40 @@ impl FormatTime for Timer {
 }
 
 // Log initialization
-pub fn init() -> Option<WorkerGuard> {
-    let config = Config::get().log;
+pub fn init() {
+    if !LOG_GUARD.get().is_none() {
+        return;
+    }
 
     if cfg!(debug_assertions) {
         fmt().with_timer(Timer).with_max_level(Level::DEBUG).init();
-        None
     } else {
-        //let error_file = rolling::never(&config.dir, "error.log")
-        //.with_filter(|meta| meta.level() == &Level::ERROR);
-        let log_file = rolling::daily(&config.dir, &config.file);
-        //.with_max_level(config.level);
-        //.with_filter(|meta| meta.level() != &Level::ERROR);
-        let (non_blocking, guard) = non_blocking(log_file);
-        //let files = error_file.and(non_blocking);
+        let config = Config::get().log;
+        let is_json = config.format.to_lowercase() == "json";
 
-        let builder = fmt().with_timer(Timer).with_writer(non_blocking);
-
-        if config.format == "json" {
-            builder.json().init();
+        // error log
+        let error_file = rolling::never(&config.dir, "error.log");
+        let (error_writer, error_guard) = non_blocking(error_file);
+        let error_layer = if is_json {
+            fmt::layer().json().with_writer(error_writer).with_filter(LevelFilter::ERROR).boxed()
         } else {
-            builder.pretty().init();
-        }
-        Some(guard)
+            fmt::layer().pretty().with_writer(error_writer).with_filter(LevelFilter::ERROR).boxed()
+        };
+
+        // other log
+        let log_file = rolling::daily(&config.dir, &config.file);
+        let (log_writer, log_guard) = non_blocking(log_file);
+        let log_filter = FilterFn::new(move |meta| {
+            meta.level() != &Level::ERROR && meta.level() <= &config.level
+        });
+        let log_layer = if is_json {
+            fmt::layer().json().with_writer(log_writer).with_filter(log_filter).boxed()
+        } else {
+            fmt::layer().pretty().with_writer(log_writer).with_filter(log_filter).boxed()
+        };
+
+        Registry::default().with(log_layer).with(error_layer).init();
+
+        LOG_GUARD.set((error_guard, log_guard)).ok();
     }
 }

@@ -41,7 +41,7 @@ port = 8080
 ##   Log
 ##------------------------------------------------
 [log]
-level = "info"     # debug | info | warn | error , default: info
+level = "trace"     # trace | debug | info | warn | error , default: info
 format = "json"    # json | text , default: json
 dir = "./logs"     # log directory
 file = "iotmq.log" # log filename , default: iotmq.log
