@@ -18,10 +18,14 @@ pub struct Config {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Listener {
     pub addr: String,
+    //#[serde(default)]
+    pub cert: Option<String>,
+    //#[serde(default)]
+    pub key: Option<String>,
     #[serde(default)]
-    pub cert: String,
+    pub proxy_protocol: bool,
     #[serde(default)]
-    pub key: String,
+    pub max_connections: usize,
 }
 
 static CFG: Lazy<Arc<RwLock<Config>>> = Lazy::new(|| Arc::new(RwLock::new(Config::load())));

@@ -94,7 +94,7 @@ impl Server {
 // run server
 async fn run() {
     log::init();
-    let ctx = Context::new().build();
+    let ctx = Context::new();
 
     // Web Server
     let web_ctx = ctx.clone();

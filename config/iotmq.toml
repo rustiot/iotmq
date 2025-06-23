@@ -3,6 +3,8 @@
 ##------------------------------------------------
 [listener.tcp]
 addr = "0.0.0.0:1883"
+proxy_protocol = false
+max_connections = 102400
 
 [listener.tls]
 addr = "0.0.0.0:8883"

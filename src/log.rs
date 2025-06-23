@@ -19,7 +19,7 @@ static LOG_GUARD: OnceCell<(WorkerGuard, WorkerGuard)> = OnceCell::new();
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
 pub struct Log {
-    #[serde(deserialize_with = "deserialize_level")]
+    #[serde(deserialize_with = "Log::deserialize_level")]
     pub level: Level,
     pub format: String,
     pub dir: String,
@@ -27,21 +27,27 @@ pub struct Log {
 }
 
 impl Log {
-    #[inline]
     fn default_level() -> Level {
         Level::INFO
     }
-    #[inline]
+
     fn default_format() -> String {
         "json".into()
     }
-    #[inline]
+
     fn default_dir() -> String {
         "./logs".into()
     }
-    #[inline]
+
     fn default_file() -> String {
         env!("CARGO_PKG_NAME").to_string() + ".log"
+    }
+
+    // Deserialize for level
+    fn deserialize_level<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Level, D::Error> {
+        let level = String::deserialize(deserializer)?;
+        let level = Level::from_str(&level).unwrap_or(Level::INFO);
+        Ok(level)
     }
 }
 
@@ -55,13 +61,6 @@ impl Default for Log {
             file: Self::default_file(),
         }
     }
-}
-
-// Deserialize for level
-fn deserialize_level<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Level, D::Error> {
-    let level = String::deserialize(deserializer)?;
-    let level = Level::from_str(&level).unwrap_or(Level::INFO);
-    Ok(level)
 }
 
 // Time formatting
@@ -79,10 +78,11 @@ pub fn init() {
         return;
     }
 
+    let config = Config::get().log;
+
     if cfg!(debug_assertions) {
-        fmt().with_timer(Timer).with_max_level(Level::DEBUG).init();
+        fmt().with_timer(Timer).with_max_level(LevelFilter::from_level(config.level)).init();
     } else {
-        let config = Config::get().log;
         let is_json = config.format.to_lowercase() == "json";
 
         // error log
@@ -95,7 +95,7 @@ pub fn init() {
         };
 
         // other log
-        let log_file = rolling::daily(&config.dir, &config.file);
+        let log_file = rolling::daily(config.dir, config.file);
         let (log_writer, log_guard) = non_blocking(log_file);
         let log_filter = FilterFn::new(move |meta| {
             meta.level() != &Level::ERROR && meta.level() <= &config.level

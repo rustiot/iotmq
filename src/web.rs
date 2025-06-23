@@ -1,12 +1,9 @@
-use crate::Config;
 use crate::Context;
 use crate::Error;
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse};
-use axum::Router;
+use crate::{api, Config};
+use axum::{Extension, Router};
 use serde::Deserialize;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::info;
@@ -19,34 +16,29 @@ pub struct Web {
 }
 
 impl Web {
-    #[inline]
     fn default_port() -> u16 {
-        8080
+        8888
     }
 }
 
 pub struct WebServer;
 
 impl WebServer {
-    fn routes() -> Router {
+    fn routes(ctx: Context) -> Router {
         Router::new()
-            .nest("/api", Self::api_routes())
+            .nest("/api", api::routes().layer(Extension(ctx)))
             .nest_service("/static", ServeDir::new("./web/dist/static"))
             .fallback_service(ServeFile::new("./web/dist/index.html"))
     }
 
-    fn api_routes() -> Router {
-        Router::new().fallback(not_found)
-    }
-
-    pub async fn start(ctx: Arc<Context>) -> Result<(), Error> {
+    pub async fn start(ctx: Context) -> Result<(), Error> {
         let config = Config::get().web;
         let addr = SocketAddr::new("0.0.0.0".parse().unwrap(), config.port);
 
         info!("WebServer[{}] starting...", addr);
 
         let ln = TcpListener::bind(addr).await?;
-        axum::serve(ln, Self::routes())
+        axum::serve(ln, Self::routes(ctx.clone()))
             .with_graceful_shutdown(async move {
                 let _ = ctx.subscribe().recv().await;
             })
@@ -55,21 +47,4 @@ impl WebServer {
         info!("WebServer shutdown");
         Ok(())
     }
-}
-
-// 404 Not Found
-async fn not_found() -> impl IntoResponse {
-    let html = format!(
-        r#"
-        <html>
-        <head><title>404 Not Found</title></head>
-        <body>
-        <center><h1>404 Not Found</h1></center>
-        <hr><center>{} {}</center>
-        </body>
-        </html>"#,
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION")
-    );
-    (StatusCode::NOT_FOUND, Html(html))
 }

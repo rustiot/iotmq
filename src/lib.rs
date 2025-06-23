@@ -1,3 +1,4 @@
+mod api;
 mod config;
 mod context;
 mod log;
@@ -7,6 +8,7 @@ mod server;
 mod web;
 
 pub mod cmd;
+
 pub use config::Config;
 pub use context::Context;
 pub use log::Log;
