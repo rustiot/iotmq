@@ -6,6 +6,8 @@ use clap::{Parser, Subcommand};
 struct Cmd {
     #[command(subcommand)]
     command: Option<SubCmd>,
+    #[clap(short, long, value_name = "FILE", global = true)]
+    config: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -24,6 +26,9 @@ enum SubCmd {
 
 pub fn parse() {
     let cmd = Cmd::parse();
+    if let Some(config) = cmd.config {
+        std::env::set_var("IOTMQ__CONFIG", config);
+    }
     match cmd.command.unwrap_or(SubCmd::Start) {
         SubCmd::Start => Server::start(),
         SubCmd::Stop => Server::stop(),

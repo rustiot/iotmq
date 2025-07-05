@@ -1,9 +1,8 @@
+use crate::api;
 use crate::Context;
 use crate::Error;
-use crate::{api, Config};
 use axum::{Extension, Router};
 use serde::Deserialize;
-use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::info;
@@ -11,13 +10,13 @@ use tracing::info;
 // Web configuration
 #[derive(Debug, Deserialize, Clone)]
 pub struct Web {
-    #[serde(default = "Web::default_port")]
-    pub port: u16,
+    #[serde(default = "Web::default_addr")]
+    pub addr: String,
 }
 
 impl Web {
-    fn default_port() -> u16 {
-        8888
+    fn default_addr() -> String {
+        "0.0.0.0:8888".into()
     }
 }
 
@@ -25,19 +24,24 @@ pub struct WebServer;
 
 impl WebServer {
     fn routes(ctx: Context) -> Router {
-        Router::new()
-            .nest("/api", api::routes().layer(Extension(ctx)))
-            .nest_service("/static", ServeDir::new("./web/dist/static"))
-            .fallback_service(ServeFile::new("./web/dist/index.html"))
+        let routes = Router::new().nest("/api", api::routes().layer(Extension(ctx)));
+        if cfg!(debug_assertions) {
+            routes
+                .nest_service("/static", ServeDir::new("./src/web/dist/static"))
+                .fallback_service(ServeFile::new("./src/web/dist/index.html"))
+        } else {
+            routes
+                .nest_service("/static", ServeDir::new("./web/static"))
+                .fallback_service(ServeFile::new("./web/index.html"))
+        }
     }
 
     pub async fn start(ctx: Context) -> Result<(), Error> {
-        let config = Config::get().web;
-        let addr = SocketAddr::new("0.0.0.0".parse().unwrap(), config.port);
+        let config = ctx.config().await.web;
 
-        info!("WebServer[{}] starting...", addr);
+        info!("WebServer[{}] starting...", config.addr);
 
-        let ln = TcpListener::bind(addr).await?;
+        let ln = TcpListener::bind(config.addr).await?;
         axum::serve(ln, Self::routes(ctx.clone()))
             .with_graceful_shutdown(async move {
                 let _ = ctx.subscribe().recv().await;
@@ -45,6 +49,7 @@ impl WebServer {
             .await?;
 
         info!("WebServer shutdown");
+
         Ok(())
     }
 }

@@ -7,11 +7,21 @@ mod plugins;
 mod server;
 mod web;
 
+mod client;
 pub mod cmd;
 
-pub use config::Config;
-pub use context::Context;
-pub use log::Log;
-pub use mqtt::MqttServer;
-pub use server::{Error, Server};
-pub use web::{Web, WebServer};
+use client::Client;
+use config::{Config, Listener as ListenerConfig, Protocol, CFG};
+use context::Context;
+use log::Log;
+use mqtt::MqttServer;
+use server::Server;
+use web::{Web, WebServer};
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Anyhow(#[from] anyhow::Error),
+}

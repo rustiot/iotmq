@@ -9,12 +9,6 @@ use tracing::{error, info};
 
 const PID_FILE: &str = concat!("/tmp/", env!("CARGO_PKG_NAME"), ".pid");
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("{0}")]
-    IO(#[from] std::io::Error),
-}
-
 pub struct Server;
 
 impl Server {
@@ -37,16 +31,16 @@ impl Server {
                 }
             }
 
-            let stdout = fs::File::create("/tmp/daemon.out").unwrap();
-            let stderr = fs::File::create("/tmp/daemon.err").unwrap();
+            //let stdout = fs::File::create("/tmp/daemon.out").unwrap();
+            //let stderr = fs::File::create("/tmp/daemon.err").unwrap();
             let daemon = daemonize::Daemonize::new()
                 .pid_file(PID_FILE)
                 .chown_pid_file(true)
-                .working_directory("./")
-                .stdout(stdout)
-                .stderr(stderr);
+                .working_directory("./");
+            //.stdout(stdout)
+            //.stderr(stderr);
             if let Err(e) = daemon.start() {
-                eprintln!("Daemonize failed: {}", e);
+                eprintln!("daemonize failed: {}", e);
                 exit(1);
             }
         }
@@ -93,7 +87,7 @@ impl Server {
 
 // run server
 async fn run() {
-    log::init();
+    log::init().await;
     let ctx = Context::new();
 
     // Web Server

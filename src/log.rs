@@ -73,12 +73,12 @@ impl FormatTime for Timer {
 }
 
 // Log initialization
-pub fn init() {
+pub async fn init() {
     if !LOG_GUARD.get().is_none() {
         return;
     }
 
-    let config = Config::get().log;
+    let config = Config::get().await.log;
 
     if cfg!(debug_assertions) {
         fmt().with_timer(Timer).with_max_level(LevelFilter::from_level(config.level)).init();
