@@ -1,6 +1,6 @@
 use crate::mqtt::{v3, v5};
 use tokio_util::bytes::BytesMut;
-use tokio_util::codec::Decoder;
+use tokio_util::codec::{Decoder, Encoder};
 
 #[derive(Debug)]
 pub enum Codec {
@@ -18,6 +18,13 @@ impl Decoder for Codec {
     type Item = Packet;
     type Error = std::io::Error;
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        return Ok(None);
+        Ok(None)
+    }
+}
+
+impl Encoder<Packet> for Codec {
+    type Error = std::io::Error;
+    fn encode(&mut self, item: Packet, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
