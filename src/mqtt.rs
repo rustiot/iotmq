@@ -1,12 +1,4 @@
-pub mod codec;
-mod types;
-pub mod v3;
-pub mod v5;
-
-pub use codec::Codec;
-use types::*;
-
-use crate::{Client, Context, Error, ListenerConfig, Protocol};
+use crate::{Context, Error, ListenerConfig, Protocol, Stream};
 use anyhow::anyhow;
 use async_tungstenite::tokio::accept_hdr_async;
 use async_tungstenite::tungstenite::handshake::server::{ErrorResponse, Request, Response};
@@ -35,16 +27,19 @@ impl Listener {
         loop {
             tokio::select! {
                 res = self.listener.accept() => {
-                    let stream = match res {
-                        Ok((stream,addr)) => {
+                    let (stream, addr) = match res {
+                        Ok((stream, addr)) => {
                             debug!("TCP accepted new connection from {}", addr);
-                            stream
+                            (stream, addr)
                         }
                         Err(_) => continue
                     };
 
                     tokio::spawn(async move {
-                        Client::new(stream);
+                        match Stream::handshake(stream, addr).await {
+                            Ok(session) => session.run().await,
+                            Err(err) => debug!("Handshake failed: {:?}", err)
+                        }
                     });
                 }
                 _ = shutdown.recv() => {
@@ -65,10 +60,10 @@ impl Listener {
         loop {
             tokio::select! {
                 res = self.listener.accept() => {
-                    let stream = match res {
+                    let (stream,addr) = match res {
                         Ok((stream,addr)) => {
                             debug!("TLS accepted new connection from {}", addr);
-                            stream
+                            (stream,addr)
                         }
                         Err(_) => continue
                     };
@@ -184,11 +179,11 @@ fn ws_callback(request: &Request, mut response: Response) -> Result<Response, Er
     let err = "Sec-WebSocket-Protocol header missing".to_string();
     let protocol =
         request.headers().get("Sec-WebSocket-Protocol").ok_or(ErrorResponse::new(Some(err)))?;
-    if protocol != "mqtt" {
+    if protocol != "protocol" {
         let err = format!("Sec-WebSocket-Protocol: {:?} is not supported", protocol);
         return Err(ErrorResponse::new(Some(err)));
     }
-    response.headers_mut().insert("sec-websocket-protocol", HeaderValue::from_static("mqtt"));
+    response.headers_mut().insert("sec-websocket-protocol", HeaderValue::from_static("protocol"));
     Ok(response)
 }
 

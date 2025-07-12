@@ -24,6 +24,7 @@ pub enum ConfigError {
 pub struct Config {
     #[serde(rename = "listener")]
     pub listeners: HashMap<Protocol, Listener>,
+    pub mqtt: Mqtt,
     pub log: Log,
     pub web: Web,
 }
@@ -40,6 +41,13 @@ pub struct Listener {
     pub proxy_protocol: bool,
     #[serde(default)]
     pub max_connections: usize,
+}
+
+// Mqtt configuration
+#[derive(Debug, Deserialize, Clone)]
+pub struct Mqtt {
+    pub max_clientid_len: u16,
+    pub max_packet_size: u32,
 }
 
 // Listener protocol

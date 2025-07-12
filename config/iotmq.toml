@@ -23,7 +23,7 @@ key = "./config/iotmq.key"
 ##   MQTT
 ##------------------------------------------------
 [mqtt]
-max_clientid_len = 65535
+max_clientid_len = 10
 max_packet_size = 1
 max_topic_alias = 65535
 max_receive = 2048
